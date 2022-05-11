@@ -2,6 +2,11 @@
 {
     public static class HostExtensions
     {
+        /// <summary>
+        /// mian 结束以后跳这里
+        /// </summary>
+        /// <param name="host"></param>
+        /// <returns></returns>
         public static IHost ChangeThreadPoolSettings(this IHost host)
         {
             var poolOptions = host.Services.GetService(typeof(IOptionsMonitor<ThreadPoolSettings>)) as IOptionsMonitor<ThreadPoolSettings>;

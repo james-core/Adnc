@@ -4,9 +4,10 @@
       "commandName": "Project",
       "launchBrowser": false,
       "environmentVariables": {
-        "SKYWALKING__SERVICENAME": "adnc.maint.webapi.dev",
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "SkyAPM.Agent.AspNetCore"
+        //"SKYWALKING__SERVICENAME": "adnc.maint.webapi.dev",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+        //"ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "SkyAPM.Agent.AspNetCore"
+
       }
     },
     "Docker": {

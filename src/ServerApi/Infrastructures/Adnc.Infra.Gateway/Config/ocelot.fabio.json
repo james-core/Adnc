@@ -1,7 +1,7 @@
 {
   //fabio
   "GlobalConfiguration": {
-    "BaseUrl": "http://172.16.0.4:8888"
+    "BaseUrl": "http://114.55.27.56:8888"
   },
   "Routes": [
     {
@@ -9,7 +9,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "172.16.0.4",
+          "Host": "114.55.27.56",
           "Port": 9999
         }
       ],

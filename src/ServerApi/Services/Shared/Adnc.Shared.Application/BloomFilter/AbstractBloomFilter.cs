@@ -1,5 +1,9 @@
 ﻿namespace Adnc.Shared.Application.BloomFilter;
 
+/// <summary>
+/// 第二步 覆写 InitAsync 方法，该方法负责初始化布隆过滤器，项目启动时，会自动调用该方法，将系统中使用到cachekey保存进过滤器中。
+/// 默认InitAsync只会执行一次，布隆过滤器创建成功后，项目再次启动也不会被调用，这里需要根据自己的实际情况调整
+/// </summary>
 public abstract class AbstractBloomFilter : IBloomFilter
 {
     private readonly Lazy<IRedisProvider> _redisProvider;

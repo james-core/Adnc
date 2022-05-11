@@ -15,6 +15,11 @@ public class CachingHostedService : BackgroundService
         _cachePreheatService = cachePreheatService;
     }
 
+    /// <summary>
+    /// 缓存预热
+    /// </summary>
+    /// <param name="stoppingToken"></param>
+    /// <returns></returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         #region Init Caches

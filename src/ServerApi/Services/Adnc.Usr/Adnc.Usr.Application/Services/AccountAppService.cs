@@ -1,5 +1,9 @@
 ﻿namespace Adnc.Usr.Application.Services;
 
+/// <summary>
+/// accountFilter过滤器（BloomFilterAccount）,这个过滤器和cache没有关系。
+/// 所有布隆过滤器的定义都一样。 BloomFilterAccount用于登录时判断account是否存在。
+/// </summary>
 public class AccountAppService : AbstractAppService, IAccountAppService
 {
     private readonly IEfRepository<SysUser> _userRepository;

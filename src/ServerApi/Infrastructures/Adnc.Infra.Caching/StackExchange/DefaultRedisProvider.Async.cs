@@ -83,7 +83,7 @@ namespace Adnc.Infra.Caching.StackExchange
 
                 if (_cacheOptions.EnableLogging)
                     _logger?.LogInformation($"Cache Hit : cachekey = {cacheKey}");
-
+                // 转化二进制
                 var value = _serializer.Deserialize<T>(result);
                 return new CacheValue<T>(value, true);
             }

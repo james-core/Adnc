@@ -84,7 +84,7 @@ namespace Adnc.Infra.Caching.StackExchange
             this._logger = loggerFactory?.CreateLogger<DefaultRedisProvider>();
             this._redisDb = _dbProvider.GetDatabase();
             this._servers = _dbProvider.GetServerList();
-            this._cacheStats = new CacheStats();
+            this._cacheStats = new CacheStats(); // 直接跳到CacheService 构造
         }
 
         /// <summary>

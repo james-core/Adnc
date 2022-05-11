@@ -19,6 +19,10 @@ namespace Adnc.Infra.Caching.StackExchange
         /// </summary>
         private readonly Lazy<ConnectionMultiplexer> _connectionMultiplexer;
 
+        /// <summary>
+        /// mian and HostExtensions执行结束以后跳这里
+        /// </summary>
+        /// <param name="options"></param>
         public DefaultDatabaseProvider(CacheOptions options)
         {
             _options = options.DBConfig;

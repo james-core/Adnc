@@ -1,5 +1,8 @@
 ﻿namespace Adnc.Usr.Application.BloomFilters;
 
+/// <summary>
+/// 第一步新建BloomFilterCacheKey.cs，并继承AbstractBloomFilter
+/// </summary>
 public class AccountBloomFilter : AbstractBloomFilter
 {
     private readonly Lazy<IServiceProvider> _services;

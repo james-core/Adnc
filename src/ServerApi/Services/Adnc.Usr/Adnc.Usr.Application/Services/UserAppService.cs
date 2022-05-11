@@ -15,6 +15,11 @@ public class UserAppService : AbstractAppService, IUserAppService
         _bloomFilterFactory = bloomFilterFactory;
     }
 
+    /// <summary>
+    /// 第四步 动态添加cachekey到BloomFilterCacheKey过滤器
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
     public async Task<AppSrvResult<long>> CreateAsync(UserCreationDto input)
     {
         if (await _userRepository.AnyAsync(x => x.Account == input.Account))

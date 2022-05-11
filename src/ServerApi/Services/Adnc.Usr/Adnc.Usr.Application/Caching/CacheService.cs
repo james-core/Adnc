@@ -8,6 +8,11 @@ public sealed class CacheService : AbstractCacheService, ICachePreheatable
         : base(cacheProvider, serviceProvider)
         => _jwtConfig = jwtConfig;
 
+    /// <summary>
+    /// 缓存预热
+    /// 第三步 在cacheservice.cs中组合BloomFilterCacheKey（主要是为了方便调用）
+    /// </summary>
+    /// <returns></returns>
     public override async Task PreheatAsync()
     {
         await GetAllDeptsFromCacheAsync();

@@ -1,7 +1,7 @@
 {
   //consul
   "GlobalConfiguration": {
-    "BaseUrl": "http://172.16.0.4:8888",
+    "BaseUrl": "http://114.55.27.56:8888",
     "UpstreamHeaderTransform": {
       "From": "gateway",
       "X-Forwarded-For": "{RemoteIpAddress}"
@@ -11,7 +11,7 @@
     },
     "ServiceDiscoveryProvider": {
       "Scheme": "http",
-      "Host": "172.16.0.4",
+      "Host": "114.55.27.56",
       "Port": 8550,
       "Type": "Consul"
     }
