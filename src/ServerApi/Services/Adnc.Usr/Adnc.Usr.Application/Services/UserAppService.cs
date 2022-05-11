@@ -110,6 +110,11 @@ public class UserAppService : AbstractAppService, IUserAppService
         return default;
     }
 
+    /// <summary>
+    /// 分页
+    /// </summary>
+    /// <param name="search"></param>
+    /// <returns></returns>
     public async Task<PageModelDto<UserDto>> GetPagedAsync(UserSearchPagedDto search)
     {
         var whereExpression = ExpressionCreator
