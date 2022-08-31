@@ -1,7 +1,5 @@
 ﻿namespace Adnc.Infra.Caching.Core
 {
-    using System.Threading;
-
     /// <summary>
     /// Cache stats counter.
     /// </summary>
@@ -10,7 +8,7 @@
         /// <summary>
         /// The counters.
         /// </summary>
-        private long[] _counters = new long[2];
+        private readonly long[] _counters = new long[2];
 
         /// <summary>
         /// Increment the specified statsType.

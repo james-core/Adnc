@@ -37,7 +37,7 @@ public static class GuardExtensions
         return value;
     }
 
-    public static void ThrowIf(this IGuard _, Func<bool> predicate, string? message)
+    public static void ThrowIf(this IGuard _, Func<bool> predicate, string message)
     {
         var result = predicate.Invoke();
         if (result)

@@ -4,9 +4,24 @@ namespace Adnc.Cus.WebApi.Registrar;
 
 public sealed class CustWebApiDependencyRegistrar : AbstractWebApiDependencyRegistrar
 {
-    public CustWebApiDependencyRegistrar(IServiceCollection services) : base(services)
+    public CustWebApiDependencyRegistrar(IServiceCollection services)
+        : base(services)
     {
     }
 
-    public override void AddAdnc() => AddWebApiDefault();
+    public CustWebApiDependencyRegistrar(IApplicationBuilder app)
+       : base(app)
+    {
+    }
+
+    public override void AddAdnc()
+    {
+        AddWebApiDefault();
+        AddHealthChecks(true, true, true, true);
+    }
+
+    public override void UseAdnc()
+    {
+        UseWebApiDefault();
+    }
 }

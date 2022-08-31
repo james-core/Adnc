@@ -1,9 +1,37 @@
 ﻿namespace Adnc.Shared.Application.BloomFilter;
 
-/// <summary>
-/// 第二步 覆写 InitAsync 方法，该方法负责初始化布隆过滤器，项目启动时，会自动调用该方法，将系统中使用到cachekey保存进过滤器中。
-/// 默认InitAsync只会执行一次，布隆过滤器创建成功后，项目再次启动也不会被调用，这里需要根据自己的实际情况调整
-/// </summary>
+public interface IBloomFilter
+{
+    /// <summary>
+    /// 过滤器名字
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
+    /// 容错率
+    /// </summary>
+    double ErrorRate { get; }
+
+    /// <summary>
+    /// 容积
+    /// </summary>
+    int Capacity { get; }
+
+    /// <summary>
+    /// 初始化布隆过滤器
+    /// </summary>
+    /// <returns></returns>
+    Task InitAsync();
+
+    Task<bool> AddAsync(string value);
+
+    Task<bool[]> AddAsync(IEnumerable<string> values);
+
+    Task<bool> ExistsAsync(string value);
+
+    Task<bool[]> ExistsAsync(IEnumerable<string> values);
+}
+
 public abstract class AbstractBloomFilter : IBloomFilter
 {
     private readonly Lazy<IRedisProvider> _redisProvider;
@@ -28,7 +56,7 @@ public abstract class AbstractBloomFilter : IBloomFilter
         if (!exists)
             throw new ArgumentNullException(this.Name, $"call {nameof(InitAsync)} methos before");
 
-        return await _redisProvider.Value.BloomAddAsync(this.Name, value);
+        return await _redisProvider.Value.BfAddAsync(this.Name, value);
     }
 
     public virtual async Task<bool[]> AddAsync(IEnumerable<string> values)
@@ -37,14 +65,12 @@ public abstract class AbstractBloomFilter : IBloomFilter
         if (!exists)
             throw new ArgumentNullException(this.Name, $"call {nameof(InitAsync)} methos before");
 
-        return await _redisProvider.Value.BloomAddAsync(this.Name, values);
+        return await _redisProvider.Value.BfAddAsync(this.Name, values);
     }
 
-    public virtual async Task<bool> ExistsAsync(string value)
-        => await _redisProvider.Value.BloomExistsAsync(this.Name, value);
+    public virtual async Task<bool> ExistsAsync(string value)   => await _redisProvider.Value.BfExistsAsync(this.Name, value);
 
-    public virtual async Task<bool[]> ExistsAsync(IEnumerable<string> values)
-        => await _redisProvider.Value.BloomExistsAsync(this.Name, values);
+    public virtual async Task<bool[]> ExistsAsync(IEnumerable<string> values) => await _redisProvider.Value.BfExistsAsync(this.Name, values);
 
     public abstract Task InitAsync();
 
@@ -64,8 +90,8 @@ public abstract class AbstractBloomFilter : IBloomFilter
         {
             if (values.IsNotNullOrEmpty())
             {
-                await _redisProvider.Value.BloomReserveAsync(this.Name, this.ErrorRate, this.Capacity);
-                await _redisProvider.Value.BloomAddAsync(this.Name, values);
+                await _redisProvider.Value.BfReserveAsync(this.Name, this.ErrorRate, this.Capacity);
+                await _redisProvider.Value.BfAddAsync(this.Name, values);
             }
         }
         finally
@@ -74,6 +100,5 @@ public abstract class AbstractBloomFilter : IBloomFilter
         }
     }
 
-    protected virtual async Task<bool> ExistsBloomFilterAsync()
-        => await _redisProvider.Value.KeyExistsAsync(this.Name);
+    protected virtual async Task<bool> ExistsBloomFilterAsync() => await _redisProvider.Value.KeyExistsAsync(this.Name);
 }

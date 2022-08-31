@@ -3,14 +3,21 @@
 public class UserAppService : AbstractAppService, IUserAppService
 {
     private readonly IEfRepository<SysUser> _userRepository;
+    private readonly IEfRepository<SysRole> _roleRepository;
+    private readonly IEfRepository<SysMenu> _menuRepository;
     private readonly CacheService _cacheService;
-    private readonly IBloomFilterFactory _bloomFilterFactory;
+    private readonly BloomFilterFactory _bloomFilterFactory;
 
-    public UserAppService(IEfRepository<SysUser> userRepository
+    public UserAppService(
+        IEfRepository<SysUser> userRepository
+        , IEfRepository<SysRole> roleRepository
+        , IEfRepository<SysMenu> menuRepository
         , CacheService cacheService
-       , IBloomFilterFactory bloomFilterFactory)
+       , BloomFilterFactory bloomFilterFactory)
     {
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
+        _menuRepository = menuRepository;
         _cacheService = cacheService;
         _bloomFilterFactory = bloomFilterFactory;
     }
@@ -28,14 +35,14 @@ public class UserAppService : AbstractAppService, IUserAppService
         var user = Mapper.Map<SysUser>(input);
         user.Id = IdGenerater.GetNextId();
         user.Account = user.Account.ToLower();
-        user.Salt = InfraHelper.Security.GenerateRandomCode(5);
-        user.Password = InfraHelper.Hash.GetHashedString(HashType.MD5, user.Password, user.Salt);
+        user.Salt = Random.Shared.Next(5, false);
+        user.Password = InfraHelper.Security.MD5(user.Password + user.Salt);
 
-        var cacheKey = _cacheService.ConcatCacheKey(CachingConsts.UserValidateInfoKeyPrefix, user.Id);
-        var bloomFilterCacheKey = _bloomFilterFactory.GetBloomFilter(nameof(CacheKeyBloomFilter));
+        var cacheKey = _cacheService.ConcatCacheKey(CachingConsts.UserValidatedInfoKeyPrefix, user.Id);
+        var bloomFilterCacheKey = _bloomFilterFactory.Create(CachingConsts.BloomfilterOfCacheKey);
         await bloomFilterCacheKey.AddAsync(cacheKey);
 
-        var bloomFilterAccount = _bloomFilterFactory.GetBloomFilter(nameof(AccountBloomFilter));
+        var bloomFilterAccount = _bloomFilterFactory.Create(CachingConsts.BloomfilterOfAccountsKey);
         await bloomFilterAccount.AddAsync(user.Account);
 
         await _userRepository.InsertAsync(user);
@@ -56,7 +63,7 @@ public class UserAppService : AbstractAppService, IUserAppService
 
     public async Task<AppSrvResult> SetRoleAsync(long id, UserSetRoleDto input)
     {
-        var roleIdStr = input.RoleIds == null ? null : string.Join(",", input.RoleIds);
+        var roleIdStr = input.RoleIds.IsNullOrEmpty() ? string.Empty : string.Join(",", input.RoleIds);
         await _userRepository.UpdateAsync(new SysUser() { Id = id, RoleIds = roleIdStr }, UpdatingProps<SysUser>(x => x.RoleIds));
 
         return AppSrvResult();
@@ -76,38 +83,28 @@ public class UserAppService : AbstractAppService, IUserAppService
 
     public async Task<AppSrvResult> ChangeStatusAsync(IEnumerable<long> ids, int status)
     {
-        string userids = string.Join(",", ids);
-        await _userRepository.UpdateRangeAsync(u => userids.Contains(u.Id.ToString()), u => new SysUser { Status = status });
+        await _userRepository.UpdateRangeAsync(u => ids.Contains(u.Id), u => new SysUser { Status = status });
         return AppSrvResult();
     }
 
-    public async Task<List<string>> GetPermissionsAsync(long userId, IEnumerable<string> permissions, string validationVersion = null)
+    public async Task<List<string>> GetPermissionsAsync(long userId, IEnumerable<string> requestPermissions, string userBelongsRoleIds)
     {
-        var userValidateInfo = await _cacheService.GetUserValidateInfoFromCacheAsync(userId);
-        if (userValidateInfo.RoleIds.IsNullOrWhiteSpace())
+        if (userBelongsRoleIds.IsNullOrWhiteSpace())
             return default;
 
-        if (userValidateInfo.Status != 1)
-            return default;
-
-        if (validationVersion.IsNotNullOrWhiteSpace() && userValidateInfo.ValidationVersion != validationVersion)
-            return default;
-
-        if (permissions.IsNullOrEmpty())
+        if (requestPermissions.IsNullOrEmpty())
             return new List<string> { "allow" };
 
-        var roleIds = userValidateInfo.RoleIds.Trim().Split(",", StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x));
+        var roleIds = userBelongsRoleIds.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x.Trim()));
 
         var allMenuCodes = await _cacheService.GetAllMenuCodesFromCacheAsync();
 
-        var codes = allMenuCodes?.Where(x => roleIds.Contains(x.RoleId)).Select(x => x.Code.ToUpper());
-        if (codes.IsNotNullOrEmpty())
-        {
-            var result = codes.Intersect(permissions.Select(x => x.ToUpper()));
-            return result.ToList();
-        }
+        var upperCodes = allMenuCodes?.Where(x => roleIds.Contains(x.RoleId)).Select(x => x.Code.ToUpper());
+        if (upperCodes.IsNullOrEmpty())
+            return default;
 
-        return default;
+        var result = upperCodes.Intersect(requestPermissions.Select(x => x.ToUpper()));
+        return result.ToList();
     }
 
     /// <summary>
@@ -119,8 +116,8 @@ public class UserAppService : AbstractAppService, IUserAppService
     {
         var whereExpression = ExpressionCreator
                                             .New<SysUser>()
-                                            .AndIf(search.Account.IsNotNullOrWhiteSpace(), x => x.Account.Contains(search.Account))
-                                            .AndIf(search.Name.IsNotNullOrWhiteSpace(), x => x.Name.Contains(search.Name));
+                                            .AndIf(search.Account.IsNotNullOrWhiteSpace(), x => EF.Functions.Like(x.Account, $"%{search.Account.Trim()}%"))
+                                            .AndIf(search.Name.IsNotNullOrWhiteSpace(), x => EF.Functions.Like(x.Name, $"%{search.Name.Trim()}%"));
 
         var total = await _userRepository.CountAsync(whereExpression);
         if (total == 0)
@@ -136,7 +133,7 @@ public class UserAppService : AbstractAppService, IUserAppService
         var userDtos = Mapper.Map<List<UserDto>>(entities);
         if (userDtos.IsNotNullOrEmpty())
         {
-            var deptIds = userDtos.Where(d => d.DeptId != null).Select(d => d.DeptId).Distinct();
+            var deptIds = userDtos.Where(d => d.DeptId is not null).Select(d => d.DeptId).Distinct();
             var depts = (await _cacheService.GetAllDeptsFromCacheAsync()).Where(x => deptIds.Contains(x.Id)).Select(d => new { d.Id, d.FullName });
             var roles = (await _cacheService.GetAllRolesFromCacheAsync()).Select(r => new { r.Id, r.Name });
             foreach (var user in userDtos)
@@ -153,5 +150,48 @@ public class UserAppService : AbstractAppService, IUserAppService
 
         var xdata = await _cacheService.GetDeptSimpleTreeListAsync();
         return new PageModelDto<UserDto>(search, userDtos, total, xdata);
+    }
+
+    public async Task<UserInfoDto> GetUserInfoAsync(long id)
+    {
+        var userProfile = await _userRepository.FetchAsync(u => new UserProfileDto
+        {
+            Account = u.Account,
+            Avatar = u.Avatar,
+            Birthday = u.Birthday,
+            DeptId = u.DeptId,
+            DeptFullName = u.Dept.FullName,
+            Email = u.Email,
+            Name = u.Name,
+            Phone = u.Phone,
+            RoleIds = u.RoleIds,
+            Sex = u.Sex,
+            Status = u.Status
+        }, x => x.Id == id);
+
+        if (userProfile == null)
+            return null;
+
+        var userInfoDto = new UserInfoDto { Id = id, Profile = userProfile };
+
+        if (userProfile.RoleIds.IsNotNullOrEmpty())
+        {
+            var roleIds = userProfile.RoleIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x));
+            var roles = await _roleRepository
+                                            .Where(x => roleIds.Contains(x.Id))
+                                            .Select(r => new { r.Id, r.Tips, r.Name })
+                                            .ToListAsync();
+            foreach (var role in roles)
+            {
+                userInfoDto.Roles.Add(role.Tips);
+                userInfoDto.Profile.Roles.Add(role.Name);
+            }
+
+            var roleMenus = await _menuRepository.GetMenusByRoleIdsAsync(roleIds.ToArray(), true);
+            if (roleMenus.IsNotNullOrEmpty())
+                userInfoDto.Permissions.AddRange(roleMenus.Select(x => x.Url).Distinct());
+        }
+
+        return userInfoDto;
     }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.Basic;
+﻿using Adnc.Shared.Rpc.Handlers.Token;
 
 namespace Adnc.UnitTest.BasicAuthentication;
 
@@ -11,10 +11,10 @@ public class BasicAuthenticationHandlerTests
     [Fact]
     public void PackAndUnPackBase64()
     {
-        var token = BasicAuthenticationHandler.PackToBase64("usr");
-        var result = BasicAuthenticationHandler.UnpackFromBase64(token, out var userName, out var appId);
-        Assert.Equal("usr", userName);
-        Assert.NotEmpty(appId);
-        Assert.True(result);
+        var token = BasicTokenValidator.PackToBase64(BasicTokenValidator.InternalCaller);
+        var result= BasicTokenValidator.UnPackFromBase64(token);
+        Assert.Equal(BasicTokenValidator.InternalCaller, result.UserName);
+        Assert.NotEmpty(result.AppId);
+        Assert.True(result.IsSuccessful);
     }
 }

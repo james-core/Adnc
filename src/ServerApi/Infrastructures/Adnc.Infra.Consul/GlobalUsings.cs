@@ -1,5 +1,4 @@
 ﻿global using Adnc.Infra.Consul.Discover;
-global using Adnc.Infra.Consul.TokenGenerator;
 global using Adnc.Infra.Core.Configuration;
 global using Consul;
 global using Microsoft.Extensions.Configuration;
@@ -7,11 +6,6 @@ global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Options;
-global using System;
-global using System.Collections.Generic;
 global using System.IO;
-global using System.Linq;
 global using System.Net;
 global using System.Text.Json;
-global using System.Threading;
-global using System.Threading.Tasks;

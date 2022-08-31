@@ -1,14 +1,16 @@
 ﻿namespace Adnc.Infra.Core.Configuration;
 
 /// <summary>
-/// JWT配置
+/// Mongodb配置
 /// </summary>
 public class MongoConfig
 {
+    public const string Name = "MongoDb";
+
     /// <summary>
     /// Gets or sets the MongoDB connection string.
     /// </summary>
-    public string ConnectionString { get; set; }
+    public string ConnectionString { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the collection naming convention.

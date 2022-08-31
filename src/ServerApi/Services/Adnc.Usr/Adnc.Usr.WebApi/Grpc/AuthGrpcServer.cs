@@ -8,15 +8,16 @@ namespace Adnc.Usr.WebApi.Grpc;
 
 public class AuthGrpcServer : AuthGrpc.AuthGrpcBase
 {
-    private readonly JwtConfig _jwtConfig;
+    private readonly IOptions<JwtConfig> _jwtOptions;
     private readonly IAccountAppService _accountService;
     private readonly IObjectMapper _mapper;
 
-    public AuthGrpcServer(IOptionsSnapshot<JwtConfig> jwtConfig
+    public AuthGrpcServer(
+        IOptions<JwtConfig> jwtOptions
         , IAccountAppService accountService
         , IObjectMapper mapper)
     {
-        _jwtConfig = jwtConfig.Value;
+        _jwtOptions = jwtOptions;
         _accountService = accountService;
         _mapper = mapper;
     }
@@ -33,10 +34,11 @@ public class AuthGrpcServer : AuthGrpc.AuthGrpcBase
             return grpcResponse;
         }
 
+        var validatedInfo = loginResult.Content;
         var loginReply = new LoginReply
         {
-            Token = JwtTokenHelper.CreateAccessToken(_jwtConfig, loginResult.Content),
-            RefreshToken = JwtTokenHelper.CreateRefreshToken(_jwtConfig, loginResult.Content)
+            Token = JwtTokenHelper.CreateAccessToken(_jwtOptions.Value, validatedInfo.ValidationVersion, validatedInfo.Account, validatedInfo.Id.ToString(), validatedInfo.Name, validatedInfo.RoleIds, JwtBearerDefaults.Manager).Token,
+            RefreshToken = JwtTokenHelper.CreateRefreshToken(_jwtOptions.Value, validatedInfo.ValidationVersion, validatedInfo.Id.ToString()).Token
         };
         grpcResponse.Content = Any.Pack(loginReply);
         return grpcResponse;

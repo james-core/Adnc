@@ -24,6 +24,7 @@ public class Product : AggregateRootWithBasicAuditInfo
     /// </summary>
     /// <param name="id"></param>
     /// <param name="sku"></param>
+    /// <param name="price"></param>
     /// <param name="name"></param>
     /// <param name="unit"></param>
     /// <param name="describe"></param>
@@ -68,7 +69,7 @@ public class Product : AggregateRootWithBasicAuditInfo
     /// <summary>
     /// 修改unit
     /// </summary>
-    /// <param name="newSku"></param>
+    /// <param name="unit"></param>
     public void SetUnit(string unit)
     {
         this.Unit = Guard.Checker.NotNullOrEmpty(unit, nameof(unit));

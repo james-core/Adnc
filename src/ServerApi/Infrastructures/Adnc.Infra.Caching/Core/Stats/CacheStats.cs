@@ -1,7 +1,5 @@
 ﻿namespace Adnc.Infra.Caching.Core
 {
-    using System.Collections.Concurrent;
-
     /// <summary>
     /// Cache stats.
     /// </summary>
@@ -15,7 +13,7 @@
         /// <summary>
         /// The default key.
         /// </summary>
-        private const string DEFAULT_KEY = "easycahing_catche_stats";
+        private const string DEFAULT_KEY = "cahing_catche_stats";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T:Adnc.Infra.Caching.Core.CacheStats"/> class.

@@ -1,14 +1,25 @@
 ﻿namespace Adnc.Shared.Domain.Entities;
 
-public abstract class AbstractDomainEntityInfo : AbstractEntityInfo
+public abstract class AbstractDomainEntityInfo : IEntityInfo
 {
-    protected override IEnumerable<Type> GetEntityTypes(Assembly assembly)
+    public abstract IEnumerable<EntityTypeInfo> GetEntitiesTypeInfo();
+
+    public abstract IEnumerable<Assembly> GetConfigAssemblys();
+
+    protected virtual IEnumerable<Type> GetEntityTypes(Assembly assembly)
     {
-        var efEntities = assembly.GetTypes().Where(m =>
+        var typeList = assembly.GetTypes().Where(m =>
                                                    m.FullName != null
                                                    && (typeof(AggregateRoot).IsAssignableFrom(m) || typeof(DomainEntity).IsAssignableFrom(m))
-                                                   && !m.IsAbstract).ToArray();
+                                                   && !m.IsAbstract);
+        if (typeList is null)
+            typeList = new List<Type>();
 
-        return efEntities;
+        return typeList.Append(typeof(EventTracker));
+    }
+
+    protected virtual IEnumerable<Assembly> GetConfigAssemblys(Assembly assembly)
+    {
+        return new List<Assembly> { assembly, typeof(EventTracker).Assembly };
     }
 }

@@ -1,6 +1,4 @@
-﻿using Adnc.Infra.Core.DependencyInjection;
-
-namespace Adnc.Shared.Application.Services;
+﻿namespace Adnc.Shared.Application.Services;
 
 public abstract class AbstractAppService : IAppService
 {
@@ -8,7 +6,7 @@ public abstract class AbstractAppService : IAppService
     {
         get
         {
-            var httpContext = HttpContextHelper.GetCurrentHttpContext();
+            var httpContext = InfraHelper.Accessor.GetCurrentHttpContext();
             if (httpContext is not null)
                 return httpContext.RequestServices.GetRequiredService<IObjectMapper>();
             if (ServiceLocator.Provider is not null)

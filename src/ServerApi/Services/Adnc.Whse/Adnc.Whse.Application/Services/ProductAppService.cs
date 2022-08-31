@@ -91,9 +91,9 @@ public class ProductAppService : AbstractAppService, IProductAppService
     public async Task<ProductDto> PutOnSaleAsync(long id, ProductPutOnSaleDto input)
     {
         var product = await _productRepo.GetAsync(id);
-        var warehouseInfo = await _warehouseInfoRepo.Where(x => x.ProductId == id).FirstOrDefaultAsync();
+        //var warehouseInfo = await _warehouseInfoRepo.Where(x => x.ProductId == id).FirstOrDefaultAsync();
 
-        _productMgr.PutOnSale(product, warehouseInfo, input.Reason);
+        _productMgr.PutOnSale(product, input.Reason);
 
         await _productRepo.UpdateAsync(product);
 
@@ -142,7 +142,7 @@ public class ProductAppService : AbstractAppService, IProductAppService
         if (productDtos.IsNotNullOrEmpty())
         {
             //调用maint微服务获取字典,组合商品状态信息
-            var restRpcResult = await _maintRestClient.GetDictAsync(RestClientConsts.ProdunctStatusId);
+            var restRpcResult = await _maintRestClient.GetDictAsync(RpcConsts.ProdunctStatusId);
             if (restRpcResult.IsSuccessStatusCode)
             {
                 var dict = restRpcResult.Content;

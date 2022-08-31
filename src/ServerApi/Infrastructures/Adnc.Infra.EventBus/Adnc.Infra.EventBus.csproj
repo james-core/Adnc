@@ -1,9 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\..\build\common.props" />
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Polly" Version="7.2.3" />
-		<PackageReference Include="RabbitMQ.Client" Version="6.2.4" />
-		<PackageReference Include="DotNetCore.CAP" Version="6.0.1" />
+		<PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
+		<PackageReference Include="DotNetCore.CAP" Version="6.1.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Adnc.Infra.Core\Adnc.Infra.Core.csproj" />

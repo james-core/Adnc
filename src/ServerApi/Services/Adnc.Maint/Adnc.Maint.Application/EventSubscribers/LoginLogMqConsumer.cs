@@ -3,6 +3,7 @@
 /// <summary>
 /// 登录日志消费者
 /// </summary>
+[Obsolete("目前使用channel处理日志")]
 public sealed class LoginLogMqConsumer : BaseRabbitMqConsumer
 {
     // 因为Process函数是委托回调,直接将其他Service注入的话两者不在一个scope,
@@ -11,10 +12,11 @@ public sealed class LoginLogMqConsumer : BaseRabbitMqConsumer
 
     private readonly ILogger<LoginLogMqConsumer> _logger;
 
-    public LoginLogMqConsumer(IOptionsMonitor<RabbitMqConfig> options
+    public LoginLogMqConsumer(
+        IRabbitMqConnection mqConnection
        , ILogger<LoginLogMqConsumer> logger
        , IServiceProvider services)
-        : base(options, logger)
+        : base(mqConnection, logger)
     {
         _services = services;
         _logger = logger;

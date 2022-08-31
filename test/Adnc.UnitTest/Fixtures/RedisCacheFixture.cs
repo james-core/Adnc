@@ -1,6 +1,4 @@
-﻿using Adnc.Infra.Caching.Configurations;
-
-namespace Adnc.UnitTest.Fixtures;
+﻿namespace Adnc.UnitTest.Fixtures;
 
 public class RedisCacheFixture
 {
@@ -10,7 +8,7 @@ public class RedisCacheFixture
     {
         var services = new ServiceCollection();
         var redisOptions = new RedisDBOptions() { Password = "football", ConnectionTimeout = 1000 * 20 };
-        redisOptions.Endpoints.Add(new ServerEndPoint() { Host = "106.14.139.201", Port = 13379 });
+        redisOptions.Endpoints.Add(new ServerEndPoint() { Host = "114.132.157.167", Port = 13379 });
         var cacheOptions = new CacheOptions()
         {
             EnableLogging = true
@@ -31,8 +29,8 @@ public class RedisCacheFixture
                 }
             }
         };
-
-        services.AddAdncInfraCaching(cacheOptions);
+        services.ConfigureOptions(cacheOptions);
+        //services.AddAdncInfraCaching(cacheOptions);
 
         Container = services.BuildServiceProvider();
     }

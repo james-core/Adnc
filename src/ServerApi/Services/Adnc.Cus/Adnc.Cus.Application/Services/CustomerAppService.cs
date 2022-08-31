@@ -1,4 +1,8 @@
-﻿namespace Adnc.Cus.Application.Services;
+﻿using Adnc.Cus.Application.Services.Caching;
+using Adnc.Shared.Application.Channels;
+using Adnc.Shared.Repository.MongoEntities;
+
+namespace Adnc.Cus.Application.Services;
 
 /// <summary>
 /// 客户管理服务
@@ -8,40 +12,32 @@ public class CustomerAppService : AbstractAppService, ICustomerAppService
     private readonly IEfRepository<Customer> _customerRepo;
     private readonly IEfRepository<CustomerFinance> _cusFinaceRepo;
     private readonly IEfRepository<CustomerTransactionLog> _cusTransactionLogRepo;
+    private readonly CacheService _cacheService;
     private readonly IEventPublisher _eventPublisher;
 
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="customerRepo"></param>
-    /// <param name="cusManagerService"></param>
-    /// <param name="mapper"></param>
     public CustomerAppService(
-         IEfRepository<Customer> customerRepo
-        , IEfRepository<CustomerFinance> cusFinaceRepo
-        , IEfRepository<CustomerTransactionLog> cusTransactionLogRepo
-        , IEventPublisher eventPublisher)
+        IEfRepository<Customer> customerRepo,
+        IEfRepository<CustomerFinance> cusFinaceRepo,
+        IEfRepository<CustomerTransactionLog> cusTransactionLogRepo,
+        CacheService cacheService,
+        IEventPublisher eventPublisher)
     {
         _customerRepo = customerRepo;
         _cusFinaceRepo = cusFinaceRepo;
         _cusTransactionLogRepo = cusTransactionLogRepo;
+        _cacheService = cacheService;
         _eventPublisher = eventPublisher;
     }
 
-    /// <summary>
-    /// 注册
-    /// </summary>
-    /// <param name="input"></param>
-    /// <returns></returns>
     public async Task<AppSrvResult<CustomerDto>> RegisterAsync(CustomerRegisterDto input)
     {
         var exists = await _customerRepo.AnyAsync(t => t.Account == input.Account);
         if (exists)
             return Problem(HttpStatusCode.Forbidden, "该账号已经存在");
 
-        var customer = Mapper.Map<Customer>(input);
+        var customer = Mapper.Map<Customer>(input, IdGenerater.GetNextId());
+        customer.Password = InfraHelper.Security.MD5(customer.Password);
 
-        customer.Id = IdGenerater.GetNextId();
         customer.FinanceInfo = new CustomerFinance()
         {
             Account = customer.Account,
@@ -55,12 +51,6 @@ public class CustomerAppService : AbstractAppService, ICustomerAppService
         return dto;
     }
 
-    /// <summary>
-    /// 充值
-    /// </summary>
-    /// <param name="id"></param>
-    /// <param name="input"></param>
-    /// <returns></returns>
     public async Task<AppSrvResult<SimpleDto<string>>> RechargeAsync(long id, CustomerRechargeDto input)
     {
         var customer = await _customerRepo.FindAsync(id);
@@ -72,10 +62,10 @@ public class CustomerAppService : AbstractAppService, ICustomerAppService
             Id = IdGenerater.GetNextId(),
             CustomerId = customer.Id,
             Account = customer.Account,
-            ExchangeType = ExchangeTypeEnum.Recharge,
+            ExchangeType = ExchangeBehavior.Recharge,
             Remark = "",
             Amount = input.Amount,
-            ExchageStatus = ExchageStatusEnum.Processing
+            ExchageStatus = ExchageStatus.Processing
         };
 
         await _cusTransactionLogRepo.InsertAsync(cusTransactionLog);
@@ -83,22 +73,19 @@ public class CustomerAppService : AbstractAppService, ICustomerAppService
         //发布充值事件
         var eventId = IdGenerater.GetNextId();
         var eventData = new CustomerRechargedEvent.EventData() { CustomerId = cusTransactionLog.CustomerId, TransactionLogId = cusTransactionLog.Id, Amount = cusTransactionLog.Amount };
-        var eventSource = System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.FullName;
+        var eventSource = nameof(RechargeAsync);
         await _eventPublisher.PublishAsync(new CustomerRechargedEvent(eventId, eventData, eventSource));
         return new SimpleDto<string>(cusTransactionLog.Id.ToString());
     }
 
-    /// <summary>
-    /// 处理充值
-    /// </summary>
-    /// <param name="transactionLogId"></param>
-    /// <param name="customerId"></param>
-    /// <param name="amount"></param>
-    /// <returns></returns>
-    public async Task<AppSrvResult> ProcessRechargingAsync(long transactionLogId, long customerId, decimal amount)
+    public async Task<AppSrvResult> ProcessRechargingAsync(CustomerRechargedEvent eventDto, IMessageTracker tracker)
     {
+        var customerId = eventDto.Data.CustomerId;
+        var amount = eventDto.Data.Amount;
+        var transactionLogId = eventDto.Data.TransactionLogId;
+
         var transLog = await _cusTransactionLogRepo.FindAsync(transactionLogId, noTracking: false);
-        if (transLog == null || transLog.ExchageStatus != ExchageStatusEnum.Processing)
+        if (transLog is null)
             return AppSrvResult();
 
         var finance = await _cusFinaceRepo.FindAsync(customerId, noTracking: false);
@@ -108,21 +95,15 @@ public class CustomerAppService : AbstractAppService, ICustomerAppService
         finance.Balance = newBalance;
         await _cusFinaceRepo.UpdateAsync(finance);
 
-        transLog.ExchageStatus = ExchageStatusEnum.Finished;
+        transLog.ExchageStatus = ExchageStatus.Finished;
         transLog.ChangingAmount = originalBalance;
         transLog.ChangedAmount = newBalance;
         await _cusTransactionLogRepo.UpdateAsync(transLog);
 
+        await tracker?.MarkAsProcessedAsync(eventDto);
         return AppSrvResult();
     }
 
-    /// <summary>
-    /// 处理付款
-    /// </summary>
-    /// <param name="transactionLogId"></param>
-    /// <param name="customerId"></param>
-    /// <param name="amount"></param>
-    /// <returns></returns>
     public async Task<AppSrvResult> ProcessPayingAsync(long transactionLogId, long customerId, decimal amount)
     {
         var transLog = await _cusTransactionLogRepo.FindAsync(transactionLogId);
@@ -147,8 +128,8 @@ public class CustomerAppService : AbstractAppService, ICustomerAppService
                 ChangingAmount = originalBalance,
                 Amount = 0 - amount,
                 ChangedAmount = newBalance,
-                ExchangeType = ExchangeTypeEnum.Order,
-                ExchageStatus = ExchageStatusEnum.Finished
+                ExchangeType = ExchangeBehavior.Order,
+                ExchageStatus = ExchageStatus.Finished
             };
 
             await _cusTransactionLogRepo.InsertAsync(transLog);
@@ -157,11 +138,6 @@ public class CustomerAppService : AbstractAppService, ICustomerAppService
         return AppSrvResult();
     }
 
-    /// <summary>
-    /// 分页列表
-    /// </summary>
-    /// <param name="search"></param>
-    /// <returns></returns>
     public async Task<AppSrvResult<PageModelDto<CustomerDto>>> GetPagedAsync(CustomerSearchPagedDto search)
     {
         var whereCondition = ExpressionCreator

@@ -51,9 +51,8 @@ public class WarehouseAppService : AbstractAppService, IWarehouseAppService
     public async Task<WarehouseDto> AllocateShelfToProductAsync(long warehouseId, WarehouseAllocateToProductDto input)
     {
         var warehouse = await _warehouseRepo.GetAsync(warehouseId);
-        var product = await _productRepo.GetAsync(input.ProductId);
 
-        await _warehouseManager.AllocateShelfToProductAsync(warehouse, product);
+        await _warehouseManager.AllocateShelfToProductAsync(warehouse, input.ProductId);
 
         await _warehouseRepo.UpdateAsync(warehouse);
 
@@ -102,16 +101,19 @@ public class WarehouseAppService : AbstractAppService, IWarehouseAppService
     /// </summary>
     /// <param name="input"></param>
     /// <returns></returns>
-    public async Task BlockQtyAsync(WarehouseBlockQtyDto input)
+    public async Task BlockQtyAsync(OrderCreatedEvent eventDto, IMessageTracker tracker)
     {
-        var blockQtyProductsInfo = input.Products.ToDictionary(x => x.ProductId, x => x.Qty);
+        var blockQtyProductsInfo = eventDto.Data.Products.ToDictionary(x => x.ProductId, x => x.Qty);
         var warehouses = await _warehouseRepo.Where(x => blockQtyProductsInfo.Keys.Contains(x.ProductId.Value), noTracking: false).ToListAsync();
-        var products = await _productRepo.Where(x => blockQtyProductsInfo.Keys.Contains(x.Id)).ToListAsync();
+        // var products = await _productRepo.Where(x => blockQtyProductsInfo.Keys.Contains(x.Id)).ToListAsync();
 
-        var result = await _warehouseManager.BlockQtyAsync(input.OrderId, blockQtyProductsInfo, warehouses, products);
+        var result = await _warehouseManager.BlockQtyAsync(eventDto.Data.OrderId, blockQtyProductsInfo, warehouses);
 
         //库存都符合锁定条件才能批量更新数据库
         if (result)
+        {
             await _warehouseRepo.UpdateRangeAsync(warehouses);
+            await tracker?.MarkAsProcessedAsync(eventDto);
+        }
     }
 }

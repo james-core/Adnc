@@ -1,7 +1,7 @@
-﻿using Adnc.Shared.Rpc.Grpc;
+﻿using Adnc.Shared.Rpc;
+using Adnc.Shared.Rpc.Grpc;
 using Adnc.Shared.Rpc.Grpc.Messages;
 using Adnc.Shared.Rpc.Grpc.Services;
-using Adnc.Shared.Rpc.Rest;
 
 namespace Adnc.Cus.WebApi.Controllers;
 
@@ -12,26 +12,69 @@ namespace Adnc.Cus.WebApi.Controllers;
 [ApiController]
 public class RestAndGrpcClientDemoController : AdncControllerBase
 {
+    private readonly IAuthRestClient _authRestClient;
     private readonly IUsrRestClient _usrRestClient;
     private readonly IMaintRestClient _maintRestClient;
     private readonly IWhseRestClient _whseRestClient;
+    private readonly AuthGrpc.AuthGrpcClient _authGrpcClinet;
     private readonly UsrGrpc.UsrGrpcClient _usrGrpcClient;
     private readonly MaintGrpc.MaintGrpcClient _maintGrpcClient;
     private readonly WhseGrpc.WhseGrpcClient _whseGrpcClient;
 
-    public RestAndGrpcClientDemoController(IUsrRestClient usrRestClient
-    , IMaintRestClient maintRestClient
-    , IWhseRestClient whseRestClient
-    , UsrGrpc.UsrGrpcClient usrGrpcClient
-    , MaintGrpc.MaintGrpcClient maintGrpcClient
-    , WhseGrpc.WhseGrpcClient whseGrpcClient)
+    public RestAndGrpcClientDemoController(
+    IAuthRestClient authRestClient,
+     IUsrRestClient usrRestClient,
+     IMaintRestClient maintRestClient,
+     IWhseRestClient whseRestClient,
+     AuthGrpc.AuthGrpcClient authGrpcClinet,
+     UsrGrpc.UsrGrpcClient usrGrpcClient,
+     MaintGrpc.MaintGrpcClient maintGrpcClient,
+     WhseGrpc.WhseGrpcClient whseGrpcClient)
     {
+        _authRestClient = authRestClient;
         _usrRestClient = usrRestClient;
         _maintRestClient = maintRestClient;
         _whseRestClient = whseRestClient;
+        _authGrpcClinet = authGrpcClinet;
         _usrGrpcClient = usrGrpcClient;
         _maintGrpcClient = maintGrpcClient;
         _whseGrpcClient = whseGrpcClient;
+    }
+
+    /// <summary>
+    /// 测试后台管理员登录-REST
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    [AllowAnonymous]
+    [HttpPost("restsession")]
+    public async Task<IActionResult> Login([FromBody] LoginInputRto input)
+    {
+        var result = await _authRestClient.LoginAsync(input);
+
+        if (result.IsSuccessStatusCode)
+            return Ok(result.Content);
+
+        return Problem(result.Error);
+    }
+
+    /// <summary>
+    /// 测试后台管理员登录-GRPC
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    [AllowAnonymous]
+    [HttpPost("grpcsession")]
+    public async Task<IActionResult> LoginGrpcAsync([FromBody] LoginRequest input)
+    {
+        var result = await _authGrpcClinet.LoginAsync(input);
+
+        if (result.IsSuccessStatusCode && result.Content.Is(LoginReply.Descriptor))
+        {
+            var outputDto = result.Content.Unpack<LoginReply>();
+            return Ok(outputDto);
+        }
+        return BadRequest(result);
     }
 
     /// <summary>
@@ -73,7 +116,7 @@ public class RestAndGrpcClientDemoController : AdncControllerBase
     [Route("restdict")]
     public async Task<IActionResult> GetDictAsync()
     {
-        var restResult = await _maintRestClient.GetDictAsync(RestClientConsts.OrderStatusId);
+        var restResult = await _maintRestClient.GetDictAsync(RpcConsts.OrderStatusId);
         if (restResult.IsSuccessStatusCode && restResult.Content is not null)
             return Ok(restResult.Content);
         return NoContent();
@@ -87,7 +130,7 @@ public class RestAndGrpcClientDemoController : AdncControllerBase
     [Route("grpcdict")]
     public async Task<IActionResult> GetDictGrpcAsync()
     {
-        var request = new DictRequest() { Id = GrpcClientConsts.OrderStatusId };
+        var request = new DictRequest() { Id = RpcConsts.OrderStatusId };
         var grpcResult = await _maintGrpcClient.GetDictAsync(request, GrpcClientConsts.BasicHeader);
         if (grpcResult.IsSuccessStatusCode && grpcResult.Content.Is(DictReply.Descriptor))
         {

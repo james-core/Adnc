@@ -1,18 +1,18 @@
 ﻿using Adnc.Infra.Caching.Configurations;
+using Adnc.Infra.Caching.Core;
 using StackExchange.Redis;
-using System.Net;
 
 namespace Adnc.Infra.Caching.StackExchange
 {
     /// <summary>
     /// Redis database provider.
     /// </summary>
-    public class DefaultDatabaseProvider : IRedisDatabaseProvider
+    public class DefaultDatabaseProvider
     {
         /// <summary>
         /// The options.
         /// </summary>
-        private readonly RedisDBOptions _options;
+        private readonly IOptions<CacheOptions> _options;
 
         /// <summary>
         /// The connection multiplexer.
@@ -25,11 +25,11 @@ namespace Adnc.Infra.Caching.StackExchange
         /// <param name="options"></param>
         public DefaultDatabaseProvider(CacheOptions options)
         {
-            _options = options.DBConfig;
+            _options = options;
             _connectionMultiplexer = new Lazy<ConnectionMultiplexer>(CreateConnectionMultiplexer);
         }
 
-        public string DBProviderName => "StackExchange";
+        public string DBProviderName => CachingConstValue.Provider.StackExchange;
 
         /// <summary>
         /// Gets the database connection.
@@ -59,21 +59,22 @@ namespace Adnc.Infra.Caching.StackExchange
         /// <returns>The connection multiplexer.</returns>
         private ConnectionMultiplexer CreateConnectionMultiplexer()
         {
-            if (string.IsNullOrWhiteSpace(_options.ConnectionString))
+            var dbconfig = _options.Value.DBConfig;
+            if (string.IsNullOrWhiteSpace(dbconfig.ConnectionString))
             {
                 var configurationOptions = new ConfigurationOptions
                 {
-                    ConnectTimeout = _options.ConnectionTimeout,
-                    User = _options.Username,
-                    Password = _options.Password,
-                    Ssl = _options.IsSsl,
-                    SslHost = _options.SslHost,
-                    AllowAdmin = _options.AllowAdmin,
-                    DefaultDatabase = _options.Database,
-                    AbortOnConnectFail = _options.AbortOnConnectFail,
+                    ConnectTimeout = dbconfig.ConnectionTimeout,
+                    User = dbconfig.Username,
+                    Password = dbconfig.Password,
+                    Ssl = dbconfig.IsSsl,
+                    SslHost = dbconfig.SslHost,
+                    AllowAdmin = dbconfig.AllowAdmin,
+                    DefaultDatabase = dbconfig.Database,
+                    AbortOnConnectFail = dbconfig.AbortOnConnectFail,
                 };
 
-                foreach (var endpoint in _options.Endpoints)
+                foreach (var endpoint in dbconfig.Endpoints)
                 {
                     configurationOptions.EndPoints.Add(endpoint.Host, endpoint.Port);
                 }
@@ -82,8 +83,8 @@ namespace Adnc.Infra.Caching.StackExchange
             }
             else
             {
-                var options = ConfigurationOptions.Parse(_options.ConnectionString);
-                return ConnectionMultiplexer.Connect(_options.ConnectionString);
+                _ = ConfigurationOptions.Parse(dbconfig.ConnectionString);
+                return ConnectionMultiplexer.Connect(dbconfig.ConnectionString);
             }
         }
 

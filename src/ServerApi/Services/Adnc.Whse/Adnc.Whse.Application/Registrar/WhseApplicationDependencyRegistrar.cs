@@ -1,8 +1,5 @@
 ﻿using Adnc.Shared.Application.Registrar;
-using Adnc.Shared.Domain;
-using Adnc.Whse.Application.EventSubscribers;
-using Adnc.Whse.Domain.EntityConfig;
-using System.Reflection;
+using Microsoft.Extensions.Configuration;
 
 namespace Adnc.Whse.Application.Registrar;
 
@@ -14,8 +11,12 @@ public sealed class WhseApplicationDependencyRegistrar : AbstractApplicationDepe
 
     public override Assembly RepositoryOrDomainLayerAssembly => typeof(EntityInfo).Assembly;
 
-    public WhseApplicationDependencyRegistrar(IServiceCollection services) : base(services)
+    private readonly IConfigurationSection _sqlSection;
+
+    public WhseApplicationDependencyRegistrar(IServiceCollection services)
+        : base(services)
     {
+        _sqlSection = Configuration.GetSection("SqlServer");
     }
 
     public override void AddAdnc()
@@ -25,14 +26,20 @@ public sealed class WhseApplicationDependencyRegistrar : AbstractApplicationDepe
 
         //rpc-rest
         var restPolicies = this.GenerateDefaultRefitPolicies();
-        var authRestAddress = IsDevelopment ? "http://localhost:50010" : "adnc.usr.webapi";
-        AddRestClient<IAuthRestClient>(authRestAddress, restPolicies);
-        var usrRestAddress = authRestAddress;
-        AddRestClient<IUsrRestClient>(usrRestAddress, restPolicies);
-        var maintRestAddress = IsDevelopment ? "http://localhost:50020" : "adnc.maint.webapi";
-        AddRestClient<IMaintRestClient>(maintRestAddress, restPolicies);
+        AddRestClient<IAuthRestClient>(RpcConsts.UsrService, restPolicies);
+        AddRestClient<IUsrRestClient>(RpcConsts.UsrService, restPolicies);
+        AddRestClient<IMaintRestClient>(RpcConsts.MaintService, restPolicies);
         //rpc-event
-        AddEventBusPublishers();
-        AddEventBusSubscribers<CapEventSubscriber>();
+        AddCapEventBus<CapEventSubscriber>(replaceDbAction: capOption =>
+        {
+            var connectionString = _sqlSection.GetValue<string>("ConnectionString");
+            capOption.UseSqlServer(config =>
+            {
+                config.ConnectionString = connectionString;
+                config.Schema = "cap";
+            });
+        });
     }
+
+    protected override void AddEfCoreContext() => Services.AddAdncInfraEfCoreSQLServer(_sqlSection);
 }
