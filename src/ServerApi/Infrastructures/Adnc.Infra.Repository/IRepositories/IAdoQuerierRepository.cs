@@ -1,5 +1,8 @@
 ﻿namespace Adnc.Infra.IRepositories;
 
+/// <summary>
+/// 几乎包含了Dapper所有查询方法。也就是说我们在EFCore仓储中可以通过AdoQuerier属性调用Dapper所有的查询方法。
+/// </summary>
 public interface IAdoQuerierRepository : IAdoRepository
 {
     /// <summary>

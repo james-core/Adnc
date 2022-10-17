@@ -12,11 +12,13 @@ public interface IEfRepository<TEntity> : IEfBaseRepository<TEntity>
 {
     /// <summary>
     /// 执行原生Sql查询
+    /// 几乎包含了Dapper所有查询方法。也就是说我们在EFCore仓储中可以通过AdoQuerier属性调用Dapper所有的查询方法。
     /// </summary>
     IAdoQuerierRepository? AdoQuerier { get; }
 
     /// <summary>
     /// 执行原生Sql写操作
+    /// 直接调用EF原生方法DbContext.Database.ExecuteSqlInterpolatedAsync()执行Sql(写操作)，该方法可以避免SQL注入的问题，尽量用该方法。
     /// </summary>
     Task<int> ExecuteSqlInterpolatedAsync(FormattableString sql, CancellationToken cancellationToken = default);
 

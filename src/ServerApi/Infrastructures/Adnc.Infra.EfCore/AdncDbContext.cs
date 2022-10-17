@@ -5,6 +5,9 @@ public abstract class AdncDbContext : DbContext
     private readonly Operater _operater;
     private readonly IEntityInfo _entityInfo;
 
+    /// <summary>
+    /// 构造函数注入IEntityInfo接口
+    /// </summary>
     protected AdncDbContext(DbContextOptions options, Operater operater, IEntityInfo entityInfo)
         : base(options)
     {
@@ -35,8 +38,12 @@ public abstract class AdncDbContext : DbContext
         return result;
     }
 
+    /// <summary>
+    /// 实体关联数据库
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        //添加实体到模型上下文
         var entityInfos = _entityInfo.GetEntitiesTypeInfo();
         entityInfos?.ForEach(info =>
         {
@@ -45,7 +52,7 @@ public abstract class AdncDbContext : DbContext
             else
                 modelBuilder.Entity(info.Type).HasData(info.DataSeeding);
         });
-
+        //从程序集加载fuluentapi加载配置文件
         var assemblys = _entityInfo.GetConfigAssemblys();
         assemblys?.ForEach(assembly => modelBuilder.ApplyConfigurationsFromAssembly(assembly));
 
@@ -71,6 +78,9 @@ public abstract class AdncDbContext : DbContext
         return ChangeTracker.Entries<Entity>().Count();
     }
 
+    /// <summary>
+    /// 设置备注
+    /// </summary>
     protected virtual void SetComment(ModelBuilder modelBuilder, IEnumerable<EntityTypeInfo>? entityInfos)
     {
         if (entityInfos is null)

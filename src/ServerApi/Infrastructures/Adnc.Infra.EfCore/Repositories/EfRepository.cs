@@ -25,6 +25,9 @@
             }
         }
 
+        /// <summary>
+        /// 直接调用EF原生方法DbContext.Database.ExecuteSqlInterpolatedAsync()执行Sql(写操作)，该方法可以避免SQL注入的问题，尽量用该方法。
+        /// </summary>
         public async Task<int> ExecuteSqlInterpolatedAsync(FormattableString sql, CancellationToken cancellationToken = default) =>
            await DbContext.Database.ExecuteSqlInterpolatedAsync(sql, cancellationToken);
 

@@ -17,6 +17,12 @@ public class ServiceInfo : IServiceInfo
     {
     }
 
+    /// <summary>
+    /// 创建服务实例
+    /// </summary>
+    /// <param name="startAssembly">开始程序集</param>
+    /// <returns></returns>
+    /// <exception cref="NullReferenceException"></exception>
     public static ServiceInfo CreateInstance(Assembly startAssembly)
     {
         if (_instance is not null)
@@ -53,7 +59,7 @@ public class ServiceInfo : IServiceInfo
                 ServiceName = serviceName,
                 ShortName = fullName.Split(".")[^2],
                 CorsPolicy = "default",
-                StartAssembly = startAssembly,
+                StartAssembly = startAssembly,// 开始程序集
                 Description = description,
                 Version = $"{version.Major}.{version.Minor}.{version.Build}.{version.Revision}"
             };

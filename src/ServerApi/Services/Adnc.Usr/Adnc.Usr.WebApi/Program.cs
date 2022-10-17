@@ -12,7 +12,7 @@ internal static class Program
         try
         {
             var webApiAssembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var serviceInfo = Shared.WebApi.ServiceInfo.CreateInstance(webApiAssembly);
+            var serviceInfo = Shared.WebApi.ServiceInfo.CreateInstance(webApiAssembly);// 服务实例化
 
             //Configuration,ServiceCollection,Logging,WebHost(Kestrel)
             var app = WebApplication
@@ -25,8 +25,8 @@ internal static class Program
 
             //Start
             await app
-                .ChangeThreadPoolSettings()
-                .UseRegistrationCenter()
+                .ChangeThreadPoolSettings()// 线程池
+                .UseRegistrationCenter()// 注册中心
                 .RunAsync();
         }
         catch (Exception ex)
