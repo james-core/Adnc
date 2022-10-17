@@ -1,4 +1,5 @@
-﻿using Adnc.Infra.Repository.Mongo;
+﻿using Adnc.Infra.Repository.EfCore.MySql.Configurations;
+using Adnc.Infra.Repository.Mongo;
 using Adnc.Infra.Repository.Mongo.Configuration;
 using Adnc.Infra.Repository.Mongo.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -15,20 +16,9 @@ public abstract partial class AbstractApplicationDependencyRegistrar
         var serviceType = typeof(IEntityInfo);
         var implType = RepositoryOrDomainLayerAssembly.ExportedTypes.FirstOrDefault(type => type.IsAssignableTo(serviceType) && type.IsNotAbstractClass(true));
         if (implType is null)
-            throw new NullReferenceException(nameof(IEntityInfo));
+            throw new NotImplementedException(nameof(IEntityInfo));
         else
-            Services.AddSingleton(serviceType, implType);
-
-        Services.AddScoped(provider =>
-        {
-            var userContext = provider.GetRequiredService<UserContext>();
-            return new Operater
-            {
-                Id = userContext.Id == 0 ? 1600000000000 : userContext.Id,
-                Account = userContext.Account.IsNullOrEmpty() ? "system" : userContext.Account,
-                Name = userContext.Name.IsNullOrEmpty() ? "system" : userContext.Name
-            };
-        });
+            Services.AddScoped(serviceType, implType);
 
         AddEfCoreContext();
     }
@@ -38,7 +28,7 @@ public abstract partial class AbstractApplicationDependencyRegistrar
     /// </summary>
     protected virtual void AddEfCoreContext()
     {
-        var mysqlConfig = MysqlSection.Get<MysqlConfig>();
+        var mysqlConfig = MysqlSection.Get<MysqlOptions>();
         var serverVersion = new MariaDbServerVersion(new Version(10, 5, 4));
         Services.AddAdncInfraEfCoreMySql(options =>
         {
@@ -69,7 +59,7 @@ public abstract partial class AbstractApplicationDependencyRegistrar
     {
         action?.Invoke(Services);
 
-        var mongoConfig = MongoDbSection.Get<MongoConfig>();
+        var mongoConfig = MongoDbSection.Get<MongoOptions>();
         Services.AddAdncInfraMongo<MongoContext>(options =>
         {
             options.ConnectionString = mongoConfig.ConnectionString;
